@@ -447,7 +447,7 @@ Check_Sync_A:
 
 	SAVE_RETURN_ADDRESS						// comps. 2nd c
 	call Pulse2								// wait 2us
-	NOP
+	mov r6.w0, TOTAL_LINES					// save all the lines of the current mode to the register
 
 	sbbo SYNC_BIT, SYNC_HI, 0, 4 			// send hi sync signal, 3 cycles, right?
 
@@ -464,9 +464,9 @@ Check_Sync_A:
 	mov r19.w2, 193           				// Mark a default wait of 193 * 2 = 386 cycles for the full 1.995us
 	qbeq no_interlace, ENABLE_INTERLACE, 0
 
+	add r6.w0, r6.w0, 1						// When interlacing is enabled, an additional line must be sent
 	mov r19.w2, 191           				// Mark a default wait of 191 * 2 = 382 cycles for the full 1.995us
 	not ODD_FIELD_FLAG, ODD_FIELD_FLAG		// Flip the odd field flag to compensate
-	NOP 									// Comp for wait
 	qbne no_interlace, ODD_FIELD_FLAG, 0	// if ODD_FIELD_FLAG is set, it was unset before the flip so we must draw the even field
 
 	// Must draw odd field so must wait the full 29.995us remaining in the current pulse
@@ -492,7 +492,7 @@ Sync_A:
 	NOP
 
 	sbbo SYNC_BIT, SYNC_HI, 0, 4 	// send hi sync signal
-	mov r6.w0, TOTAL_LINES          // comps. for call intruction
+	NOP 							// comps. for call intruction
 	call Pulse2						// wait 2us
 
 
