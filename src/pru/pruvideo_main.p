@@ -74,6 +74,9 @@
 #define TOTAL_LINES  r3
 #define PIXEL_CNT r4
 
+#define ENABLE_INTERLACE r28.w0
+#define ODD_FRAME r29.w0
+
 // ****************************************
 // Program start
 // ****************************************
@@ -131,6 +134,11 @@ Start:
 	mov PIXEL_CNT, 0
 #endif
 
+// Setup Interlacing
+
+    mov ENABLE_INTERLACE, 0
+    mov ODD_FRAME, 0
+
 //send initial sync to PRU0
 	mov r0, 0x10000
 	mov r1, 0xac
@@ -182,7 +190,7 @@ Frame:
 	call Sync_A
 	call Sync_A
 	call Sync_A
-	call Sync_A
+	call Check_Sync_A	// Check if an odd field needs to be drawn
 	call Sync_A
 
 	//Top sync sequence -> 5x Sync_B, then 5x Sync_A pattern
@@ -196,13 +204,24 @@ Frame:
 	call Sync_A
 	call Sync_A
 	call Sync_A
+	call Finish_Sync_A
+	GOTO lines_loop 	// comp for last pulse
+
+Odd:
+	call Sync_B
+	call Sync_B
+	call Sync_B
+	call Sync_B
+	call Sync_B
+
 	call Sync_A
+	call Sync_A
+	call Sync_A
+	call Finish_Sync_A
+	NOP 				// comp for last pulse
 
 	//Note - call instruction takes 1 cycle
-
-	// draw 304 pixel lines (for PAL 50Hz) or 262 lines (for NTSC 60Hz) 
-	// or something in between for custom refresh rate!
-	mov r6.w0, TOTAL_LINES // comps. for call intruction
+	
 lines_loop:
 		sbbo SYNC_BIT, SYNC_LO, 0, 4	//send LO sync signal
 		sub r6.w0, r6.w0, 1		// decrease loop counter -> comps. 2nd c
@@ -422,6 +441,63 @@ pixel_line_final_delay:
 //  2 |/////// 30 //////////////
 // ___|/////// us //////////////
 // =============================================================
+
+Check_Sync_A:
+    sbbo SYNC_BIT, SYNC_LO, 0, 4	// send LO sync signal, comps. 1st c
+
+	SAVE_RETURN_ADDRESS				// comps. 2nd c
+	call Pulse2						// wait 2us
+	NOP
+
+	sbbo SYNC_BIT, SYNC_HI, 0, 4 	//send hi sync signal, 3 cycles, right?
+
+	// I need to comp 396 cycles
+
+	// load enable interlace
+	mov r0, 0x1C //address 28 (7th int index)
+	lbbo ENABLE_INTERLACE, r0, 0, 2 // 3 cycles?, 2 + 1 per word?
+
+	// clear the odd frame register if interlacing is disabled
+	and ODD_FRAME, ENABLE_INTERLACE, ODD_FRAME
+	NOP
+
+    mov r19.w2, 193           // Mark a default wait of 193 * 2 = 386 cycles for the full 1.995us
+    qbeq no_interlace, ENABLE_INTERLACE, 0
+
+    mov r19.w2, 191           // Mark a default wait of 191 * 2 = 382 cycles for the full 1.995us
+    not ODD_FRAME, ODD_FRAME
+    NOP 							// Comp for wait
+    qbne no_interlace, ODD_FRAME, 0
+
+    // Must draw odd field so must wait the full 29.995us remaining in the current pulse
+    mov r19.w2, 2991			// Wait 2991 * 2 = 5982 cycles for the full 29.995 us
+
+interlace_pulse_loop:
+    sub r19.w2, r19.w2, 1
+    qbne interlace_pulse_loop, r19.w2, 0
+    GOTO Odd
+
+no_interlace:
+    // I need to wait PULSE_LENGTH * 2 cycles to complete 1.995us
+    sub r19.w2, r19.w2, 1
+    qbne no_interlace, r19.w2, 0
+
+	mov r19.w2, 13 					// iterate 14x,  comps. 3rd cycle
+	GOTO sync_a_loop
+
+// Almost the same as Sync_A but uses the NOPs to set the total lines to the proper register and save a cycle for the GOTO
+Finish_Sync_A:
+    sbbo SYNC_BIT, SYNC_LO, 0, 4	// send LO sync signal, comps. 1st c
+
+	SAVE_RETURN_ADDRESS				// comps. 2nd c
+	call Pulse2						// wait 2us
+	mov r6.w0, TOTAL_LINES          // comps. for call intruction
+
+	sbbo SYNC_BIT, SYNC_HI, 0, 4 	//send hi sync signal
+	call Pulse2						// wait 2us
+	mov r19.w2, 13 					// iterate 14x,  comps. 3rd cycle
+
+	GOTO sync_a_loop
 
 Sync_A:
 	sbbo SYNC_BIT, SYNC_LO, 0, 4	// send LO sync signal, comps. 1st c

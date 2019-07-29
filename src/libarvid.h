@@ -68,6 +68,9 @@ IN THE PRODUCT.
 //currently rendered line
 #define PRU_DATA_LINE_NUMBER 6
 
+//Enable interlaced mode
+#define PRU_DATA_INTERLACING_ENABLED 7
+
 typedef struct arvid_private_t {
 	unsigned int initialized;
 	unsigned int ddrAddress;
@@ -76,6 +79,7 @@ typedef struct arvid_private_t {
 	volatile unsigned int* pruSharedMem;
 	int ddrFd;
 	int linePosMod;
+	int interlacing;
 
 	int lines;
 	int fbWidth;

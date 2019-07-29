@@ -69,6 +69,7 @@ IN THE PRODUCT.
 #define CMD_GET_LINE_MOD 32
 #define CMD_SET_LINE_MOD 33
 #define CMD_SET_VIRT_VSYNC 34
+#define CMD_SET_INTERLACING 35
 
 #define CMD_UPDATE_START 40
 #define CMD_UPDATE_PACKET 41
@@ -459,6 +460,10 @@ int main(int argc, char**argv)
 			case CMD_SET_VIRT_VSYNC: // set virtual vsync
 				{
 					arvid_set_virtual_vsync(data[2] == 0xFFFF ? -1 : (int) data[2]);
+				}; break;
+			case CMD_SET_INTERLACING:
+				{
+					arvid_set_interlacing((int)data[2]);
 				}; break;
 			case CMD_UPDATE_START: //initialise update process
 				{

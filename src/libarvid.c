@@ -94,7 +94,8 @@ arvid_private ap = {
 		0,
 		0,
 		-1,
-		60  // linePosMod -> affects X position
+		60,  // linePosMod -> affects X position
+		0  // interlacing -> disabled by default
 };
 
 
@@ -216,6 +217,7 @@ static void setPruMem(int fbWidth, int fbLines) {
 	ap.pruMem[PRU_DATA_TOTAL_LINES] = fbLines;
 
 	ap.pruMem[PRU_DATA_LINE_POS_MOD] = ap.linePosMod;
+	ap.pruMem[PRU_DATA_INTERLACING_ENABLED] = ap.interlacing;
 }
 
 /* initialize memory mapping */
@@ -681,7 +683,17 @@ int arvid_get_line_pos() {
 	return ap.linePosMod;
 }
 
-
 void arvid_set_service_screen_func(arvid_service_screen_func func) {
 	ap.serviceScreen = func;
+}
+
+void arvid_set_interlacing(int interlacing) {
+	//check not yet initialized
+	if (ap.initialized != 0xACCE5503) {
+		return;
+	}
+	//printf("interlacing set: %i\n", interlacing);
+	
+	ap.interlacing = interlacing ? -1 : 0; // -1 for having all bits set
+	ap.pruMem[PRU_DATA_INTERLACING_ENABLED] = interlacing;
 }
