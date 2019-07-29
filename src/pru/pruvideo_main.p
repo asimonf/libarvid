@@ -75,7 +75,7 @@
 #define PIXEL_CNT r4
 
 #define ENABLE_INTERLACE r28.w0
-#define ODD_FRAME r29.w0
+#define ODD_FIELD_FLAG r29.w0
 
 // ****************************************
 // Program start
@@ -136,8 +136,8 @@ Start:
 
 // Setup Interlacing
 
-    mov ENABLE_INTERLACE, 0
-    mov ODD_FRAME, 0
+	mov ENABLE_INTERLACE, 0
+	mov ODD_FIELD, 0
 
 //send initial sync to PRU0
 	mov r0, 0x10000
@@ -185,12 +185,14 @@ Start:
 // Frame start
 // =============================================================
 Frame:
+	//Note - call instruction takes 1 cycle
+	
 	//Bottom sync seqence -> 6x Sync_A pattern
 	call Sync_A
 	call Sync_A
 	call Sync_A
 	call Sync_A
-	call Check_Sync_A	// Check if an odd field needs to be drawn
+	call Check_Sync_A					// Check if an odd field needs to be drawn
 	call Sync_A
 
 	//Top sync sequence -> 5x Sync_B, then 5x Sync_A pattern
@@ -204,8 +206,8 @@ Frame:
 	call Sync_A
 	call Sync_A
 	call Sync_A
-	call Finish_Sync_A
-	GOTO lines_loop 	// comp for last pulse
+	call Sync_A
+	GOTO lines_loop 					// comp for last pulse
 
 Odd:
 	call Sync_B
@@ -217,26 +219,24 @@ Odd:
 	call Sync_A
 	call Sync_A
 	call Sync_A
-	call Finish_Sync_A
-	NOP 				// comp for last pulse
-
-	//Note - call instruction takes 1 cycle
+	call Sync_A
+	NOP 								// comp for last pulse
 	
 lines_loop:
 		sbbo SYNC_BIT, SYNC_LO, 0, 4	//send LO sync signal
-		sub r6.w0, r6.w0, 1		// decrease loop counter -> comps. 2nd c
-		call PixelLine			// call pixel drawing function
+		sub r6.w0, r6.w0, 1				// decrease loop counter -> comps. 2nd c
+		call PixelLine					// call pixel drawing function
 
 		//setup pixel buffer to point at the start of the frame buffer
 		mov PIXEL_BUFFER, FRAME_BUFFER
 
-	qbne lines_loop, r6.w0, 0   // end of loop - comps. for call instruction
+	qbne lines_loop, r6.w0, 0   		// end of loop - comps. for call instruction
 
 
 	//end of single frame
 	//TODO - notify host about VSYNC
 
-	GOTO Frame					//draw new frame
+	GOTO Frame							//draw new frame
 
 
 // =============================================================
@@ -259,7 +259,7 @@ PixelLine:
 	//!!! SBBO 0,4 might take 4 cycles instead of 1 !!!!
 	sbbo SYNC_BIT, SYNC_HI, 0, 4	// send HI sync signal, comps. 1st c !!! VERIFY number of cycles for SBBO!!!
 
-    call Pulse						// wait 2us (1st HI sync signal)
+	call Pulse						// wait 2us (1st HI sync signal)
 	NOP								// comps. 2nd cycle
 
 	mov r19.w2, 3 					// iterate 3x,  comps. 3rd cycle
@@ -267,7 +267,7 @@ PixelLine:
 
 pixel_line_sync_loop:
 	sub r19.w2, r19.w2, 1			// decrease loop cont, comps. 1st c
-    call Pulse						// wait 2us (2nd, 3rd and 4th HI sync) 
+	call Pulse						// wait 2us (2nd, 3rd and 4th HI sync) 
 	NOP								// comps. 2nd cycle
 	qbne pixel_line_sync_loop, r19.w2, 0 //iterate, comps. 3rd cycle
 
@@ -295,7 +295,7 @@ pixel_line_sync_loop:
 
 
 	//Pulse 1 - black color
-    call ModPulseStart				// wait ~ 2us (depends on user preferences)
+	call ModPulseStart				// wait ~ 2us (depends on user preferences)
 	NOP								// comps. 1st cycle
 	NOP								// comps. 2nd cycle
 	NOP								// comps. 3rd cycle
@@ -395,13 +395,13 @@ send_pulse_continue:
 // the black (or background) color has to be set, then total time of 4us must be kept.
 
 	//Pulse 25
-    call Pulse						// wait 2us
+	call Pulse						// wait 2us
 	NOP								// comps. 1st cycle
 	NOP								// comps. 2nd cycle
 	NOP								// comps. 3rd cycle
 
 	//Pulse 26
-    call ModPulseEnd				// wait ~2us (is modified via LINE_POS_MOD)
+	call ModPulseEnd				// wait ~2us (is modified via LINE_POS_MOD)
 	NOP								// comps. 1st cycle
 	NOP								// comps. 2nd cycle
 	NOP								// comps. 3rd cycle
@@ -443,60 +443,45 @@ pixel_line_final_delay:
 // =============================================================
 
 Check_Sync_A:
-    sbbo SYNC_BIT, SYNC_LO, 0, 4	// send LO sync signal, comps. 1st c
+	sbbo SYNC_BIT, SYNC_LO, 0, 4			// send LO sync signal, comps. 1st c
 
-	SAVE_RETURN_ADDRESS				// comps. 2nd c
-	call Pulse2						// wait 2us
+	SAVE_RETURN_ADDRESS						// comps. 2nd c
+	call Pulse2								// wait 2us
 	NOP
 
-	sbbo SYNC_BIT, SYNC_HI, 0, 4 	//send hi sync signal, 3 cycles, right?
+	sbbo SYNC_BIT, SYNC_HI, 0, 4 			// send hi sync signal, 3 cycles, right?
 
 	// I need to comp 396 cycles
 
 	// load enable interlace
-	mov r0, 0x1C //address 28 (7th int index)
-	lbbo ENABLE_INTERLACE, r0, 0, 2 // 3 cycles?, 2 + 1 per word?
+	mov r0, 0x1C 							// address 28 (7th int index)
+	lbbo ENABLE_INTERLACE, r0, 0, 2			// 3 cycles?, 2 + 1 per word?
 
-	// clear the odd frame register if interlacing is disabled
-	and ODD_FRAME, ENABLE_INTERLACE, ODD_FRAME
-	NOP
+	// clear ODD_FIELD_FLAG if interlacing is disabled
+	and ODD_FIELD_FLAG, ENABLE_INTERLACE, ODD_FIELD_FLAG
+	NOP                             		// Comp for wait
 
-    mov r19.w2, 193           // Mark a default wait of 193 * 2 = 386 cycles for the full 1.995us
-    qbeq no_interlace, ENABLE_INTERLACE, 0
+	mov r19.w2, 193           				// Mark a default wait of 193 * 2 = 386 cycles for the full 1.995us
+	qbeq no_interlace, ENABLE_INTERLACE, 0
 
-    mov r19.w2, 191           // Mark a default wait of 191 * 2 = 382 cycles for the full 1.995us
-    not ODD_FRAME, ODD_FRAME
-    NOP 							// Comp for wait
-    qbne no_interlace, ODD_FRAME, 0
+	mov r19.w2, 191           				// Mark a default wait of 191 * 2 = 382 cycles for the full 1.995us
+	not ODD_FIELD_FLAG, ODD_FIELD_FLAG		// Flip the odd field flag to compensate
+	NOP 									// Comp for wait
+	qbne no_interlace, ODD_FIELD_FLAG, 0	// if ODD_FIELD_FLAG is set, it was unset before the flip so we must draw the even field
 
-    // Must draw odd field so must wait the full 29.995us remaining in the current pulse
-    mov r19.w2, 2991			// Wait 2991 * 2 = 5982 cycles for the full 29.995 us
-
+	// Must draw odd field so must wait the full 29.995us remaining in the current pulse
+	mov r19.w2, 2991						// Wait 2991 * 2 = 5982 cycles for the full 29.995 us
 interlace_pulse_loop:
-    sub r19.w2, r19.w2, 1
-    qbne interlace_pulse_loop, r19.w2, 0
-    GOTO Odd
+	sub r19.w2, r19.w2, 1
+	qbne interlace_pulse_loop, r19.w2, 0
+	GOTO Odd
 
 no_interlace:
-    // I need to wait PULSE_LENGTH * 2 cycles to complete 1.995us
-    sub r19.w2, r19.w2, 1
-    qbne no_interlace, r19.w2, 0
+	// I need to wait r19.w2 * 2 cycles to complete 1.995us
+	sub r19.w2, r19.w2, 1
+	qbne no_interlace, r19.w2, 0
 
 	mov r19.w2, 13 					// iterate 14x,  comps. 3rd cycle
-	GOTO sync_a_loop
-
-// Almost the same as Sync_A but uses the NOPs to set the total lines to the proper register and save a cycle for the GOTO
-Finish_Sync_A:
-    sbbo SYNC_BIT, SYNC_LO, 0, 4	// send LO sync signal, comps. 1st c
-
-	SAVE_RETURN_ADDRESS				// comps. 2nd c
-	call Pulse2						// wait 2us
-	mov r6.w0, TOTAL_LINES          // comps. for call intruction
-
-	sbbo SYNC_BIT, SYNC_HI, 0, 4 	//send hi sync signal
-	call Pulse2						// wait 2us
-	mov r19.w2, 13 					// iterate 14x,  comps. 3rd cycle
-
 	GOTO sync_a_loop
 
 Sync_A:
@@ -506,8 +491,8 @@ Sync_A:
 	call Pulse2						// wait 2us
 	NOP
 
-	sbbo SYNC_BIT, SYNC_HI, 0, 4 	//send hi sync signal
-	NOP
+	sbbo SYNC_BIT, SYNC_HI, 0, 4 	// send hi sync signal
+	mov r6.w0, TOTAL_LINES          // comps. for call intruction
 	call Pulse2						// wait 2us
 
 
@@ -515,14 +500,14 @@ Sync_A:
 
 sync_a_loop:
 	NOP								// comps. 1st c
-    call Pulse						// wait 2us
+	call Pulse						// wait 2us
 
 	sub r19.w2, r19.w2, 1			// comps. 2nd c
 	qbne sync_a_loop, r19.w2, 0		// comps. 3rd c
 
 	// 15th iteration
 	NOP 							// comps. 1st c
-    call Pulse						// wait 2us
+	call Pulse						// wait 2us
 
 	RETURN							// return to saved address, comps. 2nd c
 	//Note: 3rd compensation is done by initial CALL instruction
@@ -544,13 +529,13 @@ Sync_B:
 
 sync_b_loop:
 	NOP								// send LO sync signal, comps. 1st c
-    call Pulse						// wait 2us
+	call Pulse						// wait 2us
 	sub r19.w2, r19.w2, 1			// comps. 2nd c
 	qbne sync_b_loop, r19.w2, 0		// comps. 3rd c
 
 	// 15th iteration (16 th in total - the last one)
 	sbbo SYNC_BIT, SYNC_HI, 0, 4	// send HI sync signal, comps. 1st c
-    call Pulse2						// wait 2us
+	call Pulse2						// wait 2us
 
 	RETURN							// return to saved address, comps. 2nd c
 	//Note: 3rd compensation is done by initial CALL instruction
@@ -566,7 +551,7 @@ sync_b_loop:
 Pulse:
 	mov r19.w0, PULSE_CYCLES
 pulse_loop:
-    sub r19.w0, r19.w0, 1
+	sub r19.w0, r19.w0, 1
 	NOP
 	NOP
 	NOP
@@ -582,7 +567,7 @@ pulse_loop:
 Pulse2:
 	mov r19.w0, PULSE_CYCLES -1
 pulse2_loop:
-    sub r19.w0, r19.w0, 1
+	sub r19.w0, r19.w0, 1
 	NOP
 	NOP
 	NOP
@@ -604,7 +589,7 @@ pulse2_loop:
 Pulse_short:
 	mov r19.w0, PULSE_CYCLES - 2
 pulse_short_loop:
-    sub r19.w0, r19.w0, 1
+	sub r19.w0, r19.w0, 1
 	NOP
 	NOP
 	NOP
@@ -624,7 +609,7 @@ pulse_short_loop:
 ModPulseStart:
 	mov r19.w0, LINE_POS_MOD
 mod_pulse_start_loop:
-    sub r19.w0, r19.w0, 1
+	sub r19.w0, r19.w0, 1
 	NOP
 	NOP
 	NOP
@@ -640,7 +625,7 @@ ModPulseEnd:
 	mov r19.w0, PULSE_CYCLES_2X
 	sub r19.w0, r19.w0, LINE_POS_MOD
 mod_pulse_end_loop:
-    sub r19.w0, r19.w0, 1
+	sub r19.w0, r19.w0, 1
 	NOP
 	NOP
 	NOP
