@@ -242,4 +242,6 @@ will be called when screen saver is canceled.
 */
 void arvid_set_service_screen_func(arvid_service_screen_func func);
 
+void arvid_set_interlacing(int interlacing);
+
 #endif

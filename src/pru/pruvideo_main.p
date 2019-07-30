@@ -137,7 +137,7 @@ Start:
 // Setup Interlacing
 
 	mov ENABLE_INTERLACE, 0
-	mov ODD_FIELD, 0
+	mov ODD_FIELD_FLAG, 0
 
 //send initial sync to PRU0
 	mov r0, 0x10000
