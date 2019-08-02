@@ -41,7 +41,7 @@
 #define LINE_END_DELAY 93
 //#define LINE_END_DELAY_MOD1
 //#define LINE_END_DELAY_MOD2
-// #define LINE_END_DELAY_MOD3
+//#define LINE_END_DELAY_MOD3
 
 #include "pruvideo_main.p"
 

@@ -29,7 +29,7 @@
 // Horizontal resolution of 336 pixels
 #define PIXELS_PER_LINE 336
 
-//pixel cycles: 3 * 4 + 0
+//pixel cycles: 4 * 4 + 0
 #define PASSIVE_CYCLES_PER_PIXEL 4
 //#define PASSIVE_CYCLE_PER_PIXEL_MOD1
 //#define PASSIVE_CYCLE_PER_PIXEL_MOD2

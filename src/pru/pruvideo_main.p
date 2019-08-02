@@ -454,7 +454,7 @@ Check_Sync_A:
 	// I need to comp 396 cycles
 
 	// load enable interlace
-	mov r0, 0x1C 							// address 28 (7th int index)
+	mov r0, 0x24 							// address 36 (9th int index)
 	lbbo ENABLE_INTERLACE, r0, 0, 2			// 3 cycles?, 2 + 1 per word?
 
 	// clear ODD_FIELD_FLAG if interlacing is disabled

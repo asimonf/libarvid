@@ -32,8 +32,8 @@
 //pixel cycles: 1 * 4 + 0
 #define PASSIVE_CYCLES_PER_PIXEL 1
 //#define PASSIVE_CYCLE_PER_PIXEL_MOD1
-// #define PASSIVE_CYCLE_PER_PIXEL_MOD2
-// #define PASSIVE_CYCLE_PER_PIXEL_MOD3
+//#define PASSIVE_CYCLE_PER_PIXEL_MOD2
+//#define PASSIVE_CYCLE_PER_PIXEL_MOD3
 
 //delay cycles:  61 * 4 + 0
 #define LINE_END_DELAY 60

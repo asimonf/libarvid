@@ -25,7 +25,7 @@
 
 #include "utils.p"
 
-// Horizontal resolution of 416 pixels
+// Horizontal resolution of 448 pixels
 #define PIXELS_PER_LINE 448
 
 //pixel cycles: 2 * 4 + 1
