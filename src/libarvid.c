@@ -608,6 +608,11 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 		printf("arvid: unknown video mode %i\n", (int) mode);
 		return ARVID_ERROR_ILLEGAL_VIDEO_MODE;
 	}
+	
+	if (lines == ap.lines) {
+		setPruMem(arvid_resolution[mode], lines);
+		return 0;
+	}
 
 	stop_frame_thread();
 	usleep(10 * 1000);
@@ -627,6 +632,7 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	ap.vsyncLine = -1; //disable virtual vsync
 
 	//return 
+	load_pru_code_();
 	return start_frame_thread();
 }
 
