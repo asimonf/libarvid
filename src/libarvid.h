@@ -68,8 +68,10 @@ IN THE PRODUCT.
 //currently rendered line
 #define PRU_DATA_LINE_NUMBER 6
 
+//Pass universal timing data
+#define PRU_DATA_UNIVERSAL_TIMINGS 7
 //Enable interlaced mode
-#define PRU_DATA_INTERLACING_ENABLED 7
+#define PRU_DATA_INTERLACING_ENABLED 9
 
 typedef struct arvid_private_t {
 	unsigned int initialized;
@@ -98,6 +100,18 @@ typedef struct arvid_line_rate_t {
 	unsigned short line;
 	float rate;
 } arvid_line_rate;
+
+typedef struct arvid_mode_cycle_data_t {
+	unsigned short pixels_per_line;
+	unsigned short asymetric_pixels;
+	
+	unsigned char passive_cycles_per_pixel;
+	unsigned char passive_cycles_per_pixel_mod;
+	
+	unsigned char line_end_delay;
+	unsigned char line_end_delay_mod;
+	
+} arvid_mode_cycles;
 
 unsigned int arvid_get_vsync_number(void);
 int arvid_get_virtual_vsync(void);

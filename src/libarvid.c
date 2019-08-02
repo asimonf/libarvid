@@ -99,6 +99,7 @@ arvid_private ap = {
 };
 
 
+extern arvid_mode_cycles arvid_mode_cycles[arvid_last_video_mode];
 extern arvid_line_rate arvid_rate_table[arvid_last_video_mode][RATE_SIZE];
 
 
@@ -196,6 +197,8 @@ static int init_pruss_(void) {
 /* setup pru data related to video mode and rendering */
 static void setPruMem(int fbWidth, int fbLines) {
 	int blockCnt;
+	
+	arvid_mode_cycles table;
 
 	ap.pruMem[PRU_DATA_FB_ADDR] = (unsigned int) ap.ddrAddress;
 	//note: pruMem[1] contains current frame number
@@ -217,6 +220,18 @@ static void setPruMem(int fbWidth, int fbLines) {
 	ap.pruMem[PRU_DATA_TOTAL_LINES] = fbLines;
 
 	ap.pruMem[PRU_DATA_LINE_POS_MOD] = ap.linePosMod;
+	
+	//Universal timing data
+	table = arvid_mode_cycles[(int) mode];
+	ap.pruMem[PRU_DATA_UNIVERSAL_TIMINGS] = table.pixels_per_line | table.asymetric_pixels << 16;
+	ap.pruMem[PRU_DATA_UNIVERSAL_TIMINGS + 1] = 
+		table.passive_cycles_per_pixel | 
+		table.passive_cycles_per_pixel_mod << 8 |
+		table.line_end_delay << 16 |
+		table.line_end_delay_mod << 24 |
+	;
+	
+	//Interlacing
 	ap.pruMem[PRU_DATA_INTERLACING_ENABLED] = ap.interlacing;
 }
 
@@ -277,7 +292,7 @@ int init_memory_mapping_(void) {
 	return 0;
 }
 
-static int load_pru_code_(arvid_video_mode mode) {
+static int load_pru_code_() {
 	int res;
 	char fileName[64];
 
@@ -287,8 +302,7 @@ static int load_pru_code_(arvid_video_mode mode) {
 		return ARVID_ERROR_PRU_LOAD_FAILED;
 	}
 
-	sprintf(fileName, "./pruvideo_%i.bin", arvid_resolution[mode]);
-	res = prussdrv_exec_program(1, fileName);
+	res = prussdrv_exec_program(1, "./pruvideo_universal.bin");
 	if (res != 0) {
 		printf("arvid: failed to load %s\n", fileName);
 		return ARVID_ERROR_PRU_LOAD_FAILED;
@@ -346,7 +360,7 @@ int arvid_init_ex(int initFlags) {
 
 	init_frame_buffer_(INITIAL_VIDEO_MODE, INITIAL_FB_LINES, initFlags & FLAG_NO_FB_CLEAR);
 
-	res = load_pru_code_(INITIAL_VIDEO_MODE);
+	res = load_pru_code_();
 	if (res) {
 		return res;
 	}
@@ -613,7 +627,6 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	ap.vsyncLine = -1; //disable virtual vsync
 
 	//return 
-	load_pru_code_(mode);
 	return start_frame_thread();
 }
 
