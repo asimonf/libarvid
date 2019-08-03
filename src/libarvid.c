@@ -225,7 +225,7 @@ static void setPruMem(int fbWidth, int fbLines, const arvid_mode_cycles* table) 
 		table->passive_cycles_per_pixel | 
 		table->passive_cycles_per_pixel_mod << 8 |
 		table->line_end_delay << 16 |
-		table->line_end_delay_mod << 24 |
+		table->line_end_delay_mod << 24
 	;
 	
 	//Interlacing
