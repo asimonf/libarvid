@@ -30,6 +30,7 @@ IN THE PRODUCT.
 
 //internal for arvid
 #define INITIAL_VIDEO_MODE arvid_320
+#define INITIAL_VIDEO_MODE_INDEX 0
 #define INITIAL_FB_W  320
 #define INITIAL_FB_H  224
 //#define INITIAL_FB_LINES 304

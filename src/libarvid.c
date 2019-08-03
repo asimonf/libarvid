@@ -99,7 +99,7 @@ arvid_private ap = {
 };
 
 
-extern arvid_mode_cycles arvid_mode_cycles[arvid_last_video_mode];
+extern arvid_mode_cycles arvid_cycles_table[arvid_last_video_mode];
 extern arvid_line_rate arvid_rate_table[arvid_last_video_mode][RATE_SIZE];
 
 
@@ -195,10 +195,8 @@ static int init_pruss_(void) {
 }
 
 /* setup pru data related to video mode and rendering */
-static void setPruMem(int fbWidth, int fbLines) {
+static void setPruMem(int fbWidth, int fbLines, const arvid_mode_cycles* table) {
 	int blockCnt;
-	
-	arvid_mode_cycles table;
 
 	ap.pruMem[PRU_DATA_FB_ADDR] = (unsigned int) ap.ddrAddress;
 	//note: pruMem[1] contains current frame number
@@ -222,13 +220,12 @@ static void setPruMem(int fbWidth, int fbLines) {
 	ap.pruMem[PRU_DATA_LINE_POS_MOD] = ap.linePosMod;
 	
 	//Universal timing data
-	table = arvid_mode_cycles[(int) mode];
-	ap.pruMem[PRU_DATA_UNIVERSAL_TIMINGS] = table.pixels_per_line | table.asymetric_pixels << 16;
+	ap.pruMem[PRU_DATA_UNIVERSAL_TIMINGS] = table->pixels_per_line | table->asymetric_pixels << 16;
 	ap.pruMem[PRU_DATA_UNIVERSAL_TIMINGS + 1] = 
-		table.passive_cycles_per_pixel | 
-		table.passive_cycles_per_pixel_mod << 8 |
-		table.line_end_delay << 16 |
-		table.line_end_delay_mod << 24 |
+		table->passive_cycles_per_pixel | 
+		table->passive_cycles_per_pixel_mod << 8 |
+		table->line_end_delay << 16 |
+		table->line_end_delay_mod << 24 |
 	;
 	
 	//Interlacing
@@ -250,7 +247,7 @@ int init_memory_mapping_(void) {
 	printf("shared mem=%p\n", ap.pruSharedMem);
 
 	//set video mode info to pru
-	setPruMem(INITIAL_FB_W, INITIAL_FB_LINES);
+	setPruMem(INITIAL_FB_W, INITIAL_FB_LINES, &arvid_cycles_table[INITIAL_VIDEO_MODE_INDEX]);
 
 	//map DDR memory
 
@@ -610,7 +607,7 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	}
 	
 	if (lines == ap.lines) {
-		setPruMem(arvid_resolution[mode], lines);
+		setPruMem(arvid_resolution[mode], lines, &arvid_cycles_table[mode]);
 		return 0;
 	}
 
@@ -618,7 +615,7 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	usleep(10 * 1000);
 
 	//set video mode info to pru
-	setPruMem(arvid_resolution[mode], lines);
+	setPruMem(arvid_resolution[mode], lines, &arvid_cycles_table[mode]);
 
 	//reset prus initial synchronisation state
 	ap.ddrMem[0] = 0;
