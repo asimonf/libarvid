@@ -820,7 +820,7 @@ arvid_line_rate arvid_rate_table[arvid_last_video_mode][RATE_SIZE] = {
 
 };
 
-arvid_mode_cycles arvid_mode_cycles_table[arvid_last_video_mode] = {
+arvid_mode_cycles arvid_cycles_table[arvid_last_video_mode] = {
 {320, 0, 4, 1, 61, 0},
 {256, 2, 5, 3, 61, 0},
 {288, 2, 4, 3, 69, 0},
