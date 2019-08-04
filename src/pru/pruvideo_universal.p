@@ -58,16 +58,16 @@
 #define PIXEL_CNT r23.w1
 
 #define PASSIVE_MOD_LOCATION r20.w0
-#define LINE_END_DELAY_MOD_LOCATION r20.w1
+#define LINE_END_DELAY_MOD_LOCATION r20.w2
 #define ODD_FIELD_FLAG r24.w0
-#define ASYMETRIC_PIXELS_LOCATION r24.w1
+#define ASYMETRIC_PIXELS_LOCATION r24.w2
 
 // Universal timing data registers
 #define UNIVERSAL_DATA_REG		r21
 
 #define PIXEL_AND_ASYMETRY		r21
 #define PIXELS_PER_LINE_REG 	r21.w0
-#define ASYMETRIC_PIXELS_REG 	r21.w1
+#define ASYMETRIC_PIXELS_REG 	r21.w2
 
 #define PASSIVE_AND_LINE_END_DELAY			r22
 #define PASSIVE_CYCLES_PER_PIXEL_REG 		r22.b0
@@ -128,7 +128,7 @@ Start:
 
 	mov ENABLE_INTERLACE, 0
 	mov ODD_FIELD_FLAG, 0
-
+	
 // send initial sync to PRU0
 	mov r0, 0x10000
 	mov r1, 0xac
@@ -213,12 +213,12 @@ Odd:
 	NOP 								// comp for last pulse
 	
 lines_loop:
-		sbbo SYNC_BIT, SYNC_LO, 0, 4	//send LO sync signal
-		sub r6.w0, r6.w0, 1				// decrease loop counter -> comps. 2nd c
-		call PixelLine					// call pixel drawing function
+	sbbo SYNC_BIT, SYNC_LO, 0, 4	//send LO sync signal
+	sub r6.w0, r6.w0, 1				// decrease loop counter -> comps. 2nd c
+	call PixelLine					// call pixel drawing function
 
-		//setup pixel buffer to point at the start of the frame buffer
-		mov PIXEL_BUFFER, FRAME_BUFFER
+	//setup pixel buffer to point at the start of the frame buffer
+	mov PIXEL_BUFFER, FRAME_BUFFER
 
 	qbne lines_loop, r6.w0, 0   		// end of loop - comps. for call instruction
 
@@ -320,7 +320,7 @@ pixel_line_pixel_delay:
 	qbne pixel_line_pixel_delay, r0.w2, 0
 
 pixel_line_pixel_delay_adjust:
-    jmp PASSIVE_MOD_LOCATION 						// compensate 1st cycle of delay adjust
+	jmp PASSIVE_MOD_LOCATION 						// compensate 1st cycle of delay adjust
 
 	//final passive cycles fine-tuning
 	NOP
@@ -328,7 +328,7 @@ pixel_line_pixel_delay_adjust:
 	NOP
 	
 pixel_line_pixel_delay_finish:
-    jmp ASYMETRIC_PIXELS_LOCATION					// compensate 2nd cycle of delay adjust
+	jmp ASYMETRIC_PIXELS_LOCATION					// compensate 2nd cycle of delay adjust
 
 //odd pixels are slightly wider
 asymetric_pixels_2:
@@ -392,8 +392,7 @@ pixel_line_final_delay:
 	qbne pixel_line_final_delay, r0.w2, 0
 
 pixel_line_final_delay_adjust:
-    jmp LINE_END_DELAY_MOD_LOCATION // Basically jump to the address at the label with a precalculated substraction
-
+	jmp LINE_END_DELAY_MOD_LOCATION // Basically jump to the address at the label with a precalculated substraction
 	//final delay fine-tuning
 	NOP
 	NOP
@@ -428,7 +427,7 @@ Check_Sync_A:
 	
 	// Calculate Line End Delay (2 cycles long section)
 	ldi LINE_END_DELAY_MOD_LOCATION, pixel_line_final_delay_finish
-	sub LINE_END_DELAY_MOD_LOCATION, LINE_END_DELAY_MOD_LOCATION, LINE_END_DELAY_REG
+	sub LINE_END_DELAY_MOD_LOCATION, LINE_END_DELAY_MOD_LOCATION, LINE_END_DELAY_MOD
 
     // Calculate Asymmetry Jump Locations (5 cycles long section always)
 	qbeq asymetry_adjust_4, ASYMETRIC_PIXELS_REG, 4 // must 4 cycles long if taken
@@ -459,7 +458,7 @@ asymetry_adjust_2:
 calculate_passive_delay:
 	NOP	// Added to make the number of cycles even to compensate for the granularity of the loop below
 	ldi PASSIVE_MOD_LOCATION, pixel_line_pixel_delay_finish
-	sub PASSIVE_MOD_LOCATION, PASSIVE_MOD_LOCATION, PASSIVE_CYCLES_PER_PIXEL_REG
+	sub PASSIVE_MOD_LOCATION, PASSIVE_MOD_LOCATION, PASSIVE_CYCLES_PER_PIXEL_MOD
 	
 
 	// clear ODD_FIELD_FLAG if interlacing is disabled
