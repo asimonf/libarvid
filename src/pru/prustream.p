@@ -136,7 +136,6 @@ streaming_start:
 
 	mov FRAME_BUFFER, PIXEL_ADDR	//source 
 
-
 	//store the FRAME_NUM so the host can read it
 	mov r0, FRAME_NUM_ADDR 
 	sbbo FRAME_NUM, r0, 0, 4

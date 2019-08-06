@@ -134,9 +134,9 @@ void* thread_runner(void* data) {
 		//wait for the start of the frame
 		prussdrv_pru_wait_event(PRU_EVTOUT_1);
 		prussdrv_pru_clear_event(PRU_EVTOUT_1, PRU0_ARM_INTERRUPT);
-                width = ap.fbWidth;
-                dstFb[1] = dstFb[0];
-                dstFb[1] += width * 4;
+		width = ap.fbWidth;
+		dstFb[1] = dstFb[0];
+		dstFb[1] += width * 4;
 
 //		prussdrv_pru_wait_event(PRU_EVTOUT_1);
 //		prussdrv_pru_clear_event(PRU_EVTOUT_1, PRU0_ARM_INTERRUPT);

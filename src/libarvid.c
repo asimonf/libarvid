@@ -293,11 +293,11 @@ static int load_pru_code_() {
 	int res;
 	char fileName[64];
 
-//	res = prussdrv_exec_program(0, "./prustream.bin");
-//	if (res != 0) {
-//		printf("arvid: failed to load prustream.bin\n");
-//		return ARVID_ERROR_PRU_LOAD_FAILED;
-//	}
+	res = prussdrv_exec_program(0, "./prustream.bin");
+	if (res != 0) {
+		printf("arvid: failed to load prustream.bin\n");
+		return ARVID_ERROR_PRU_LOAD_FAILED;
+	}
 
 	res = prussdrv_exec_program(1, "./pruvideo_universal.bin");
 	if (res != 0) {
@@ -607,9 +607,10 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	}
 	
 	if (lines == ap.lines) {
-		setPruMem(arvid_resolution[mode], lines, &arvid_cycles_table[mode]);
-                ap.fbWidth = arvid_resolution[mode];
-   		return 0;
+		ap.ddrMem[0] = 0;
+	    setPruMem(arvid_resolution[mode], lines, &arvid_cycles_table[mode]);
+		ap.fbWidth = arvid_resolution[mode];
+		return 0;
 	}
 	stop_frame_thread();
 
