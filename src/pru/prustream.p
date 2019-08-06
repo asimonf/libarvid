@@ -130,6 +130,9 @@ streaming_start:
 	//store combined button state (now in r1) to pruMem[4]
 	mov r0, BUTTON_STATE_ADDR
 	sbbo r1, r0, 0, 4
+	
+	mov r0, BLOCK_COUNT_ADDR
+	lbbo BLOCK_COUNT, r0, 0, 4
 
 	mov FRAME_BUFFER, PIXEL_ADDR	//source 
 
