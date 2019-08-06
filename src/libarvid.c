@@ -607,9 +607,9 @@ int arvid_set_video_mode(arvid_video_mode mode, int lines) {
 	}
 	
 	if (lines == ap.lines) {
-		ap.ddrMem[0] = 0;
 	    setPruMem(arvid_resolution[mode], lines, &arvid_cycles_table[mode]);
-		ap.fbWidth = arvid_resolution[mode];
+		ap.ddrMem[0] = 0;
+		init_frame_buffer_(mode, lines, 0);
 		return 0;
 	}
 	stop_frame_thread();
